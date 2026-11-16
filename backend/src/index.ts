@@ -6,12 +6,18 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/authRoutes.js";
 import { config } from "./utils/config.js";
 
+//routes
+import { providerRouter } from "./routes/providerRoutes.js";
+import { serviceRouter } from "./routes/serviceRoutes.js";
+
 dotenv.config();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRouter);
+app.use("/api/providers", providerRouter);
+app.use("/api/services", serviceRouter);
 app.use(errorHandler); // must be registered after all routes
 
 app.get("/", (req, res) => res.json({ status: "ok" }));

@@ -53,3 +53,10 @@ export function requireRole(role: AuthTokenPayload["role"]) {
     next();
   };
 }
+
+export function getAuth(req: Request): AuthTokenPayload {
+  if (!req.auth) {
+    throw new HttpError(401, "Not authenticated");
+  }
+  return req.auth;
+}
