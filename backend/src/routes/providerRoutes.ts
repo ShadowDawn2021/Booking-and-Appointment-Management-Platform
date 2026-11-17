@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { listSlotsHandler } from "../controllers/slotController.js";
 import {
   createProviderHandler,
   getMyProviderHandler,
@@ -30,3 +31,4 @@ providerRouter.patch(
 );
 providerRouter.get("/:slug", getProviderBySlugHandler);
 providerRouter.get("/:slug/services", listProviderServicesHandler);
+providerRouter.get("/:slug/slots", listSlotsHandler);

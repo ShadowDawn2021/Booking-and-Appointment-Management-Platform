@@ -1,5 +1,6 @@
 // src/utils/validation.ts
 import { z } from "zod";
+import { DateTime } from "luxon";
 
 export const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -77,3 +78,99 @@ export type CreateProviderInput = z.infer<typeof createProviderSchema>;
 export type UpdateProviderInput = z.infer<typeof updateProviderSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>;
+
+const timeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm (24-hour)");
+
+export const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .refine(
+    (value) => DateTime.fromISO(value, { zone: "utc" }).isValid,
+    "Invalid calendar date",
+  );
+
+const weeklyWindowSchema = z
+  .object({
+    dayOfWeek: z.number().int().min(0).max(6), // 0 = Sunday
+    startTime: timeSchema,
+    endTime: timeSchema,
+  })
+  .refine((window) => window.startTime < window.endTime, {
+    message: "startTime must be before endTime",
+    path: ["endTime"],
+  });
+
+export const weeklyAvailabilitySchema = z
+  .object({ windows: z.array(weeklyWindowSchema).max(70) })
+  .superRefine((data, ctx) => {
+    const sorted = data.windows
+      .map((window, index) => ({ window, index }))
+      .sort(
+        (a, b) =>
+          a.window.dayOfWeek - b.window.dayOfWeek ||
+          a.window.startTime.localeCompare(b.window.startTime),
+      );
+
+    let previous: (typeof sorted)[number] | undefined;
+    for (const current of sorted) {
+      if (
+        previous &&
+        previous.window.dayOfWeek === current.window.dayOfWeek &&
+        current.window.startTime < previous.window.endTime
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Windows on the same day must not overlap",
+          path: ["windows", current.index, "startTime"],
+        });
+      }
+      previous = current;
+    }
+  });
+
+export const exceptionSchema = z
+  .object({
+    date: dateSchema,
+    isClosed: z.boolean(),
+    startTime: timeSchema.optional(),
+    endTime: timeSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.isClosed) {
+      if (data.startTime !== undefined || data.endTime !== undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Closed days cannot have custom hours",
+          path: ["isClosed"],
+        });
+      }
+      return;
+    }
+    if (data.startTime === undefined || data.endTime === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "startTime and endTime are required when the day is not closed",
+        path: ["startTime"],
+      });
+      return;
+    }
+    if (data.startTime >= data.endTime) {
+      ctx.addIssue({
+        code: "custom",
+        message: "startTime must be before endTime",
+        path: ["endTime"],
+      });
+    }
+  });
+
+export const slotsQuerySchema = z.object({
+  date: dateSchema,
+  serviceId: z.string().uuid(),
+});
+
+export type WeeklyAvailabilityInput = z.infer<typeof weeklyAvailabilitySchema>;
+export type ExceptionInput = z.infer<typeof exceptionSchema>;
+export type SlotsQuery = z.infer<typeof slotsQuerySchema>;

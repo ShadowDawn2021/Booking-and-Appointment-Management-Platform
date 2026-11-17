@@ -70,6 +70,7 @@ model AvailabilityException {
   isClosed   Boolean  @default(true)
   startTime  String?
   endTime    String?
+  @@unique([providerId, date])
 }
 
 model Booking {
