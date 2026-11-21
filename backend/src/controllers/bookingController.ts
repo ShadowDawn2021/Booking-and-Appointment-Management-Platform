@@ -11,14 +11,23 @@ import {
   listBookingsQuerySchema,
 } from "../utils/validation.js";
 
+import {
+  notifyBookingCancelled,
+  notifyBookingCreated,
+} from "../services/notificationServices.js";
+import { runInBackground } from "../utils/background.js";
+
 export async function createBookingHandler(
   req: Request,
   res: Response,
 ): Promise<void> {
   const { userId } = getAuth(req);
-  res
-    .status(201)
-    .json(await createBooking(userId, createBookingSchema.parse(req.body)));
+  const booking = await createBooking(
+    userId,
+    createBookingSchema.parse(req.body),
+  );
+  runInBackground(notifyBookingCreated(booking.id), "booking-created email");
+  res.status(201).json(booking);
 }
 
 export async function listMyBookingsHandler(
@@ -34,6 +43,12 @@ export async function cancelBookingHandler(
   req: Request,
   res: Response,
 ): Promise<void> {
+  const auth = getAuth(req);
   const { id } = idParamSchema.parse(req.params);
-  res.json(await cancelBooking(getAuth(req), id));
+  const booking = await cancelBooking(auth, id);
+  runInBackground(
+    notifyBookingCancelled(booking.id, auth.role),
+    "booking-cancelled email",
+  );
+  res.json(booking);
 }
