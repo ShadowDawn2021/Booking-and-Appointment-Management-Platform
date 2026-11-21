@@ -174,3 +174,16 @@ export const slotsQuerySchema = z.object({
 export type WeeklyAvailabilityInput = z.infer<typeof weeklyAvailabilitySchema>;
 export type ExceptionInput = z.infer<typeof exceptionSchema>;
 export type SlotsQuery = z.infer<typeof slotsQuerySchema>;
+
+export const createBookingSchema = z.object({
+  providerSlug: z.string().trim().toLowerCase().min(1).max(50),
+  serviceId: z.string().uuid(),
+  startTime: z.string().datetime({ offset: true }),
+});
+
+export const listBookingsQuerySchema = z.object({
+  scope: z.enum(["upcoming", "past", "all"]).default("upcoming"),
+});
+
+export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;

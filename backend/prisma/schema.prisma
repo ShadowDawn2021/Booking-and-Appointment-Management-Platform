@@ -86,7 +86,7 @@ model Booking {
   status     BookingStatus @default(CONFIRMED)
   createdAt  DateTime      @default(now())
 
-  @@unique([providerId, startTime]) // prevents exact double-booking at the DB level
+  @@index([providerId, startTime])
 }
 
 enum BookingStatus {

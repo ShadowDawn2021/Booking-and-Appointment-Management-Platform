@@ -10,6 +10,7 @@ import { config } from "./utils/config.js";
 import { providerRouter } from "./routes/providerRoutes.js";
 import { serviceRouter } from "./routes/serviceRoutes.js";
 import { availabilityRouter } from "./routes/availabilityRoutes.js";
+import { bookingRouter } from "./routes/bookingRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -21,6 +22,7 @@ app.use("/api/providers", providerRouter);
 app.use("/api/services", serviceRouter);
 app.use(errorHandler); // must be registered after all routes
 app.use("/api/availability", availabilityRouter);
+app.use("/api/bookings", bookingRouter);
 
 app.get("/", (req, res) => res.json({ status: "ok" }));
 app.get("/health", (req, res) => res.json({ status: "ok" }));

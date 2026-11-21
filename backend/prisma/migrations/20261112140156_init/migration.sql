@@ -107,3 +107,13 @@ ALTER TABLE "Booking" ADD CONSTRAINT "Booking_serviceId_fkey" FOREIGN KEY ("serv
 
 -- AddForeignKey
 ALTER TABLE "Booking" ADD CONSTRAINT "Booking_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+ALTER TABLE "Booking"
+  ADD CONSTRAINT booking_no_overlap
+  EXCLUDE USING gist (
+    "providerId" WITH =,
+    tsrange("startTime", "endTime", '[)') WITH &&
+  )
+  WHERE ("status" <> 'CANCELLED');
