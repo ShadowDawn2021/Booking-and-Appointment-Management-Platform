@@ -1,14 +1,17 @@
-// src/components/BookingFlow.tsx
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useCreateBooking } from "../api/booking";
 import { getErrorMessage } from "../api/errors";
 import { useSlots } from "../api/slots";
 import type { PublicProvider, Service } from "../api/types";
+import { useAuth } from "../auth/useAuth";
 import { MAX_ADVANCE_DAYS } from "../lib/constants";
 import {
   addDaysToDateString,
   formatSlotDateTime,
   todayInTimezone,
 } from "../lib/dateTime";
+import { BookingConfirmation } from "./BookingConfirmation";
 import { ServicePicker } from "./ServicePicker";
 import { SlotGrid } from "./SlotGrid";
 
@@ -18,6 +21,10 @@ interface BookingFlowProps {
 }
 
 export function BookingFlow({ provider, services }: BookingFlowProps) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const createBooking = useCreateBooking();
+
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [dateOverride, setDateOverride] = useState<string | null>(null);
   const [slotStart, setSlotStart] = useState<string | null>(null);
@@ -32,8 +39,10 @@ export function BookingFlow({ provider, services }: BookingFlowProps) {
   // Derived, so a slot that vanishes after a refetch (someone else booked it) is dropped automatically
   const selectedSlot =
     slots.data?.slots.find((slot) => slot.start === slotStart) ?? null;
+  const returnState = { from: location.pathname };
 
   function handleServiceSelect(id: string): void {
+    createBooking.reset();
     setServiceId(id);
     setSlotStart(null);
   }
@@ -42,8 +51,38 @@ export function BookingFlow({ provider, services }: BookingFlowProps) {
     if (!value) {
       return; // the date input emits "" when cleared
     }
+    createBooking.reset();
     setDateOverride(value);
     setSlotStart(null);
+  }
+
+  function handleSlotSelect(start: string): void {
+    createBooking.reset();
+    setSlotStart(start);
+  }
+
+  function handleConfirm(): void {
+    if (!selectedService || !selectedSlot) {
+      return;
+    }
+    createBooking.mutate({
+      providerSlug: provider.slug,
+      serviceId: selectedService.id,
+      startTime: selectedSlot.start,
+    });
+  }
+
+  if (createBooking.isSuccess) {
+    return (
+      <BookingConfirmation
+        booking={createBooking.data}
+        timezone={provider.timezone}
+        onBookAnother={() => {
+          createBooking.reset();
+          setSlotStart(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -101,18 +140,61 @@ export function BookingFlow({ provider, services }: BookingFlowProps) {
             slots={slots.data.slots}
             timezone={provider.timezone}
             selectedStart={slotStart}
-            onSelect={setSlotStart}
+            onSelect={handleSlotSelect}
           />
         )}
       </section>
 
       {selectedService && selectedSlot && (
-        <section className="rounded border border-blue-200 bg-blue-50 p-4">
-          <p className="font-medium">{selectedService.name}</p>
-          <p className="text-gray-700">
-            {formatSlotDateTime(selectedSlot.start, provider.timezone)}
-          </p>
+        <section className="space-y-3 rounded border border-blue-200 bg-blue-50 p-4">
+          <div>
+            <p className="font-medium">{selectedService.name}</p>
+            <p className="text-gray-700">
+              {formatSlotDateTime(selectedSlot.start, provider.timezone)}
+            </p>
+          </div>
+          {user === null ? (
+            <p className="text-sm">
+              <Link
+                to="/login"
+                state={returnState}
+                className="font-medium underline"
+              >
+                Log in
+              </Link>{" "}
+              or{" "}
+              <Link
+                to="/signup"
+                state={returnState}
+                className="font-medium underline"
+              >
+                sign up
+              </Link>{" "}
+              to book this time.
+            </p>
+          ) : user.role === "CUSTOMER" ? (
+            <button
+              type="button"
+              disabled={createBooking.isPending}
+              onClick={handleConfirm}
+              className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-60"
+            >
+              {createBooking.isPending ? "Booking…" : "Confirm booking"}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-700">
+              You're logged in as a provider. Log in with a customer account to
+              book.
+            </p>
+          )}
         </section>
+      )}
+
+      {/* Outside the summary box: after a conflict the slot list refreshes and the box disappears */}
+      {createBooking.isError && (
+        <p role="alert" className="text-sm text-red-600">
+          {getErrorMessage(createBooking.error)}
+        </p>
       )}
     </div>
   );

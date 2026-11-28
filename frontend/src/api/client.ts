@@ -1,20 +1,29 @@
 import axios from "axios";
+import { AUTH_EXPIRED_EVENT, authSession } from "../auth/session";
 
-const TOKEN_KEY = "booking.token";
 const apiBaseUrl: string = import.meta.env.VITE_API_URL ?? "/api";
-
-export const tokenStorage = {
-  get: (): string | null => localStorage.getItem(TOKEN_KEY),
-  set: (token: string): void => localStorage.setItem(TOKEN_KEY, token),
-  clear: (): void => localStorage.removeItem(TOKEN_KEY),
-};
 
 export const api = axios.create({ baseURL: apiBaseUrl });
 
 api.interceptors.request.use((config) => {
-  const token = tokenStorage.get();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const session = authSession.load();
+  if (session) {
+    config.headers.Authorization = `Bearer ${session.token}`;
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    const isRejectedToken =
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      authSession.load() !== null;
+    if (isRejectedToken) {
+      authSession.clear();
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
+    return Promise.reject(error);
+  },
+);
