@@ -1,4 +1,8 @@
-export function getRedirectTarget(locationState: unknown): string {
+/** Only same-site paths are honored, so a crafted state can't redirect users elsewhere. */
+export function getRedirectTarget(
+  locationState: unknown,
+  fallback = "/",
+): string {
   if (
     typeof locationState === "object" &&
     locationState !== null &&
@@ -14,5 +18,5 @@ export function getRedirectTarget(locationState: unknown): string {
       return from;
     }
   }
-  return "/";
+  return fallback;
 }

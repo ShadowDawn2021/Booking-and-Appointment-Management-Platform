@@ -1,8 +1,11 @@
 import { Route, Routes } from "react-router-dom";
+import { RequireRole } from "./auth/RequireRole";
 import { Layout } from "./components/Layout";
 import BookingPage from "./pages/BookingPage";
+import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import MyBookingsPage from "./pages/MyBookingPage";
 import SignupPage from "./pages/SignupPage";
 
 function NotFound() {
@@ -17,6 +20,12 @@ export default function App() {
         <Route path="login" element={<LoginPage />} />
         <Route path="signup" element={<SignupPage />} />
         <Route path="book/:slug" element={<BookingPage />} />
+        <Route element={<RequireRole role="PROVIDER" />}>
+          <Route path="dashboard" element={<DashboardPage />} />
+        </Route>
+        <Route element={<RequireRole role="CUSTOMER" />}>
+          <Route path="my-bookings" element={<MyBookingsPage />} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

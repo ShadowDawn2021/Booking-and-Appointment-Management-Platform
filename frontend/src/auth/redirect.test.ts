@@ -20,3 +20,18 @@ describe("getRedirectTarget", () => {
     expect(getRedirectTarget({ from: "/\\evil.example" })).toBe("/");
   });
 });
+
+describe("getRedirectTarget fallback", () => {
+  it("uses the provided fallback when there is no safe target", () => {
+    expect(getRedirectTarget(null, "/dashboard")).toBe("/dashboard");
+    expect(getRedirectTarget({ from: "//evil.example" }, "/dashboard")).toBe(
+      "/dashboard",
+    );
+  });
+
+  it("still prefers a safe target over the fallback", () => {
+    expect(getRedirectTarget({ from: "/book/coach-mike" }, "/dashboard")).toBe(
+      "/book/coach-mike",
+    );
+  });
+});

@@ -20,8 +20,17 @@ export default function LoginPage() {
   if (isLoading) {
     return <p className="p-6 text-gray-600">Loading…</p>;
   }
+
   if (user) {
-    return <Navigate to={getRedirectTarget(location.state)} replace />;
+    return (
+      <Navigate
+        to={getRedirectTarget(
+          location.state,
+          user.role === "PROVIDER" ? "/dashboard" : "/",
+        )}
+        replace
+      />
+    );
   }
 
   async function onSubmit(values: LoginForm): Promise<void> {

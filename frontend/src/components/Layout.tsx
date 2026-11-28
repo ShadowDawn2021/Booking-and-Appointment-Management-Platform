@@ -24,6 +24,15 @@ function AuthControls() {
   }
   return (
     <>
+      {user.role === "PROVIDER" ? (
+        <Link to="/dashboard" className="underline">
+          Dashboard
+        </Link>
+      ) : (
+        <Link to="/my-bookings" className="underline">
+          My bookings
+        </Link>
+      )}
       <span className="text-gray-600">{user.name}</span>
       <button type="button" onClick={logout} className="underline">
         Log out

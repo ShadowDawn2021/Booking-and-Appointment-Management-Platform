@@ -54,3 +54,7 @@ export interface BookingView {
   };
   customer: { id: string; name: string; email: string };
 }
+
+export interface ProviderProfile extends PublicProvider {
+  userId: string;
+}
